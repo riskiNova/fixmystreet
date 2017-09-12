@@ -257,6 +257,7 @@ sub category_extras_ajax : Path('category_extras') : Args(0) {
     };
 
     my $category_extra = '';
+    my $category_extra_json = [];
     my $generate;
     if ( $c->stash->{category_extras}->{$category} && @{ $c->stash->{category_extras}->{$category} } >= 1 ) {
         $c->stash->{category_extras} = { $category => $c->stash->{category_extras}->{$category} };
@@ -270,15 +271,17 @@ sub category_extras_ajax : Path('category_extras') : Args(0) {
     }
     if ($generate) {
         $category_extra = $c->render_fragment('report/new/category_extras.html', $vars);
+        $category_extra_json = $c->forward('generate_category_extra_json');
     }
 
     my $councils_text = $c->render_fragment( 'report/new/councils_text.html', $vars);
     my $councils_text_private = $c->render_fragment( 'report/new/councils_text_private.html');
 
-    my $body = encode_json({
+    my $body = JSON::MaybeXS->new(utf8 => 1, pretty => 1)->encode({
         category_extra => $category_extra,
         councils_text => $councils_text,
         councils_text_private => $councils_text_private,
+        category_extra_json => $category_extra_json,
     });
 
     $c->res->content_type('application/json; charset=utf-8');
@@ -1441,6 +1444,12 @@ sub redirect_to_around : Private {
     my $around_uri = $c->uri_for( '/around', $params );
 
     return $c->res->redirect($around_uri);
+}
+
+sub generate_category_extra_json : Private {
+    my ( $self, $c ) = @_;
+
+    return $c->stash->{category_extras}->{$c->stash->{category}};
 }
 
 __PACKAGE__->meta->make_immutable;
