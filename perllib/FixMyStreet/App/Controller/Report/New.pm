@@ -1449,7 +1449,19 @@ sub redirect_to_around : Private {
 sub generate_category_extra_json : Private {
     my ( $self, $c ) = @_;
 
-    return $c->stash->{category_extras}->{$c->stash->{category}};
+    my $true = JSON->true;
+    my $false = JSON->false;
+
+    my @fields = map {
+        {
+            %$_,
+            required => $_->{required} eq "true" ? $true : $false,
+            variable => $_->{variable} eq "true" ? $true : $false,
+            order => int($_->{order}),
+        }
+    } @{ $c->stash->{category_extras}->{$c->stash->{category}} };
+
+    return \@fields;
 }
 
 __PACKAGE__->meta->make_immutable;
