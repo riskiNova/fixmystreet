@@ -103,7 +103,7 @@ sub update_comments {
         $problem = $self->schema->resultset('Problem')->to_body($body)->search( $criteria );
 
         if (my $p = $problem->first) {
-            next unless defined $request->{update_id} && defined $request->{description};
+            next unless defined $request->{update_id};
             my $c = $p->comments->search( { external_id => $request->{update_id} } );
 
             if ( !$c->first ) {
@@ -112,7 +112,7 @@ sub update_comments {
                         problem => $p,
                         user => $self->system_user,
                         external_id => $request->{update_id},
-                        text => $request->{description},
+                        text => $request->{description} || "", # TODO: look up a response template here?
                         mark_fixed => 0,
                         mark_open => 0,
                         anonymous => 0,
