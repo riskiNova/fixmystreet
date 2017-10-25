@@ -48,6 +48,8 @@
         - Report field pre-filling for inspectors configurable #1854
         - Admins can now unban users #1881
         - Council dashboard has date range for report generation #1885
+        - 'Auto-response' flag on response templates is honoured for fetched
+          Open311 updates. #1924
     - UK:
         - Use SVG logo, inlined on front page. #1887
         - Inline critical CSS on front page.
