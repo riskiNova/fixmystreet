@@ -4,7 +4,7 @@ use parent 'FixMyStreet::Cobrand::Whitelabel';
 use strict;
 use warnings;
 
-sub council_id { return 2551; }
+sub council_area_id { return 2551; }
 sub council_area { return 'Bath and North East Somerset'; }
 sub council_name { return 'Bath and North East Somerset Council'; }
 sub council_url { return 'bathnes'; }
