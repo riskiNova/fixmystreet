@@ -458,6 +458,35 @@ $.extend(fixmystreet.set_up, {
     });
   },
 
+  category_groups: function() {
+    console.log("category_groups");
+    var $category_select = $("select#form_category.js-grouped-select");
+    $category_select.hide();
+    var $group_select = $("<select></select>").addClass("form-control");
+    $group_select.insertAfter($category_select);
+
+    var add_optgroup = function(el) {
+        var label = $(el).attr("label");
+        var $opt = $("<option></option>").text(label).val(label);
+        $group_select.append($opt);
+    };
+
+    var add_option = function(el) {
+        var $el = $(el);
+        var $opt = $("<option></option>").text($el.text()).val($el.val());
+        $group_select.append($opt);
+    };
+
+    $category_select.find("optgroup, > option").each(function() {
+        console.log(this);
+        if (this.tagName.toLowerCase() === 'optgroup') {
+            add_optgroup(this);
+        } else if (this.tagName.toLowerCase() === 'option') {
+            add_option(this);
+        }
+    });
+  },
+
   hide_name: function() {
       $('body').on('click', '.js-hide-name', function(e){
           e.preventDefault();
