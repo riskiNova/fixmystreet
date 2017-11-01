@@ -711,7 +711,13 @@ sub setup_categories_and_bodies : Private {
         for my $category (@category_options) {
             push @{$category_groups{$category->{group}}}, $category;
         }
-        $c->stash->{category_groups}  = \%category_groups;
+
+        my @category_groups = ();
+        for my $group ( grep { $_ ne _('Other') } sort keys %category_groups ) {
+            push @category_groups, { name => $group, categories => $category_groups{$group} };
+        }
+        push @category_groups, { name => _('Other'), categories => $category_groups{_('Other')} } if ($category_groups{_('Other')});
+        $c->stash->{category_groups}  = \@category_groups;
     }
 }
 
