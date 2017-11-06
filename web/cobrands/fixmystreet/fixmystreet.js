@@ -483,7 +483,7 @@ $.extend(fixmystreet.set_up, {
 
     var subcategory_change = function() {
         $category_select.val($(this).val()).change();
-    }
+    };
 
     var add_optgroup = function(el) {
         var $el = $(el);
