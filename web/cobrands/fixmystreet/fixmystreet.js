@@ -469,15 +469,18 @@ $.extend(fixmystreet.set_up, {
   category_groups: function() {
     var $category_select = $("select#form_category.js-grouped-select");
     var $group_select = $("<select></select>").addClass("form-control");
+    var $subcategory_label = $("#form_subcategory_label");
+    var $empty_option = $category_select.find("option").first();
 
     $group_select.change(function() {
         var subcategory_id = $(this).find(":selected").data("subcategory_id");
         $(".js-subcategory").hide();
-        console.log(subcategory_id);
         if (subcategory_id === undefined) {
+            $subcategory_label.addClass("hidden-js");
             $category_select.val($(this).val()).change();
         } else {
             $("#" + subcategory_id).show();
+            $("#form_subcategory_label").removeClass("hidden-js");
         }
     });
 
@@ -500,10 +503,11 @@ $.extend(fixmystreet.set_up, {
             var $sub_select = $("<select></select>").addClass("form-control js-subcategory");
             $sub_select.attr("id", subcategory_id);
             $opt.data("subcategory_id", subcategory_id);
+            $sub_select.append($empty_option.clone());
             $options.each(function() {
                 $sub_select.append($(this).clone());
             });
-            $sub_select.hide().insertAfter($group_select).change(subcategory_change);
+            $sub_select.hide().insertAfter($subcategory_label).change(subcategory_change);
         }
     };
 
@@ -514,7 +518,6 @@ $.extend(fixmystreet.set_up, {
     $category_select.hide();
     $group_select.insertAfter($category_select);
     $category_select.find("optgroup, > option").each(function() {
-        console.log(this);
         if (this.tagName.toLowerCase() === 'optgroup') {
             add_optgroup(this);
         } else if (this.tagName.toLowerCase() === 'option') {
@@ -996,6 +999,7 @@ fixmystreet.update_pin = function(lonlat, savePushState) {
         if (category_select.val() != '-- Pick a category --') {
             category_select.change();
         }
+        fixmystreet.run(fixmystreet.set_up.category_groups);
 
         if (data.contribute_as) {
             var $select = $('.js-contribute-as');
