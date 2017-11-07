@@ -156,7 +156,7 @@ sub _handle_existing_contact {
     if ( $contact and lc($metadata) eq 'true' ) {
         $self->_add_meta_to_contact( $contact );
     } elsif ( $contact and $contact->extra and lc($metadata) eq 'false' ) {
-        $contact->set_extra_fields(undef);
+        $contact->set_extra_fields();
         $contact->update;
     }
 
