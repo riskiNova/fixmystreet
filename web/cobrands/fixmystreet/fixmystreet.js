@@ -476,11 +476,11 @@ $.extend(fixmystreet.set_up, {
         var subcategory_id = $(this).find(":selected").data("subcategory_id");
         $(".js-subcategory").hide();
         if (subcategory_id === undefined) {
-            $subcategory_label.addClass("hidden-js");
+            $subcategory_label.addClass("hidden");
             $category_select.val($(this).val()).change();
         } else {
             $("#" + subcategory_id).show();
-            $("#form_subcategory_label").removeClass("hidden-js");
+            $("#form_subcategory_label").removeClass("hidden");
         }
     });
 
