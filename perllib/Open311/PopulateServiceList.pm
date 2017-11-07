@@ -156,7 +156,13 @@ sub _handle_existing_contact {
     if ( $contact and lc($metadata) eq 'true' ) {
         $self->_add_meta_to_contact( $contact );
     } elsif ( $contact and $contact->extra and lc($metadata) eq 'false' ) {
-        $contact->update( { extra => undef } );
+        $contact->set_extra_fields(undef);
+        $contact->update;
+    }
+
+    if (my $group = $self->_current_service->{group}) {
+        $contact->set_extra_metadata(group => $group);
+        $contact->update;
     }
 
     push @{ $self->found_contacts }, $self->_current_service->{service_code};
@@ -181,6 +187,12 @@ sub _create_contact {
             }
         );
     };
+
+    if (my $group = $self->_current_service->{group}) {
+        $contact->set_extra_metadata(group => $group);
+        $contact->update;
+    }
+
 
     if ( $@ ) {
         warn "Failed to create contact for service code " . $self->_current_service->{service_code} . " for body @{[$self->_current_body->id]}: $@\n"
@@ -283,10 +295,11 @@ sub _delete_contacts_not_in_service_list {
         }
     );
 
-    # for Warwickshire/Bristol, which are mixed Open311 and email, don't delete
+    # for Warwickshire/Bristol/BANES, which are mixed Open311 and email, don't delete
     # the email addresses
     if ($self->_current_body->name eq 'Warwickshire County Council' ||
-        $self->_current_body->name eq 'Bristol City Council') {
+        $self->_current_body->name eq 'Bristol City Council' ||
+        $self->_current_body->name eq 'Bath and North East Somerset Council') {
         $found_contacts = $found_contacts->search(
             {
                 email => { -not_like => '%@%' }
