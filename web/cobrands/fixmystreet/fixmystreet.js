@@ -479,7 +479,7 @@ $.extend(fixmystreet.set_up, {
             $subcategory_label.addClass("hidden");
             $category_select.val($(this).val()).change();
         } else {
-            $("#" + subcategory_id).show();
+            $("#" + subcategory_id).show().change();
             $("#form_subcategory_label").removeClass("hidden");
         }
     });
