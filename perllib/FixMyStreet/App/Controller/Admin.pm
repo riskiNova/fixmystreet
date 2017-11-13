@@ -652,6 +652,8 @@ sub category : Chained('body') : PathPart('') {
 sub reports : Path('reports') {
     my ( $self, $c ) = @_;
 
+    $c->forward( 'body_form_dropdowns' );
+
     my $query = {};
     if ( $c->cobrand->moniker eq 'zurich' ) {
         my $type = $c->stash->{admin_type};
@@ -674,125 +676,125 @@ sub reports : Path('reports') {
     my $p_page = $c->get_param('p') || 1;
     my $u_page = $c->get_param('u') || 1;
 
-    if (my $search = $c->get_param('search')) {
-        $c->stash->{searched} = $search;
+    unless ( $c->cobrand->call_hook(report_search_query => $query, $p_page, $u_page, $order) ) {
+        if (my $search = $c->get_param('search')) {
+            $c->stash->{searched} = $search;
 
-        my $search_n = 0;
-        $search_n = int($search) if $search =~ /^\d+$/;
+            my $search_n = 0;
+            $search_n = int($search) if $search =~ /^\d+$/;
 
-        my $like_search = "%$search%";
+            my $like_search = "%$search%";
 
-        my $parsed = FixMyStreet::SMS->parse_username($search);
-        my $valid_phone = $parsed->{phone};
-        my $valid_email = $parsed->{email};
+            my $parsed = FixMyStreet::SMS->parse_username($search);
+            my $valid_phone = $parsed->{phone};
+            my $valid_email = $parsed->{email};
 
-        # when DBIC creates the join it does 'JOIN users user' in the
-        # SQL which makes PostgreSQL unhappy as user is a reserved
-        # word. So look up user ID for email separately.
-        my @user_ids = $c->model('DB::User')->search({
-            email => { ilike => $like_search },
-        }, { columns => [ 'id' ] } )->all;
-        @user_ids = map { $_->id } @user_ids;
+            # when DBIC creates the join it does 'JOIN users user' in the
+            # SQL which makes PostgreSQL unhappy as user is a reserved
+            # word. So look up user ID for email separately.
+            my @user_ids = $c->model('DB::User')->search({
+                email => { ilike => $like_search },
+            }, { columns => [ 'id' ] } )->all;
+            @user_ids = map { $_->id } @user_ids;
 
-        my @user_ids_phone = $c->model('DB::User')->search({
-            phone => { ilike => $like_search },
-        }, { columns => [ 'id' ] } )->all;
-        @user_ids_phone = map { $_->id } @user_ids_phone;
+            my @user_ids_phone = $c->model('DB::User')->search({
+                phone => { ilike => $like_search },
+            }, { columns => [ 'id' ] } )->all;
+            @user_ids_phone = map { $_->id } @user_ids_phone;
 
-        if ($valid_email) {
-            $query->{'-or'} = [
-                'me.user_id' => { -in => \@user_ids },
-            ];
-        } elsif ($valid_phone) {
-            $query->{'-or'} = [
-                'me.user_id' => { -in => \@user_ids_phone },
-            ];
-        } elsif ($search =~ /^id:(\d+)$/) {
-            $query->{'-or'} = [
-                'me.id' => int($1),
-            ];
-        } elsif ($search =~ /^area:(\d+)$/) {
-            $query->{'-or'} = [
-                'me.areas' => { like => "%,$1,%" }
-            ];
-        } elsif ($search =~ /^ref:(\d+)$/) {
-            $query->{'-or'} = [
-                'me.external_id' => { like => "%$1%" }
-            ];
-        } else {
-            $query->{'-or'} = [
-                'me.id' => $search_n,
-                'me.user_id' => { -in => [ @user_ids, @user_ids_phone ] },
-                'me.external_id' => { ilike => $like_search },
-                'me.name' => { ilike => $like_search },
-                'me.title' => { ilike => $like_search },
-                detail => { ilike => $like_search },
-                bodies_str => { like => $like_search },
-                cobrand_data => { like => $like_search },
-            ];
-        }
-
-        my $problems = $c->cobrand->problems->search(
-            $query,
-            {
-                rows => 50,
-                order_by => [ \"(state='hidden')", \$order ]
+            if ($valid_email) {
+                $query->{'-or'} = [
+                    'me.user_id' => { -in => \@user_ids },
+                ];
+            } elsif ($valid_phone) {
+                $query->{'-or'} = [
+                    'me.user_id' => { -in => \@user_ids_phone },
+                ];
+            } elsif ($search =~ /^id:(\d+)$/) {
+                $query->{'-or'} = [
+                    'me.id' => int($1),
+                ];
+            } elsif ($search =~ /^area:(\d+)$/) {
+                $query->{'-or'} = [
+                    'me.areas' => { like => "%,$1,%" }
+                ];
+            } elsif ($search =~ /^ref:(\d+)$/) {
+                $query->{'-or'} = [
+                    'me.external_id' => { like => "%$1%" }
+                ];
+            } else {
+                $query->{'-or'} = [
+                    'me.id' => $search_n,
+                    'me.user_id' => { -in => [ @user_ids, @user_ids_phone ] },
+                    'me.external_id' => { ilike => $like_search },
+                    'me.name' => { ilike => $like_search },
+                    'me.title' => { ilike => $like_search },
+                    detail => { ilike => $like_search },
+                    bodies_str => { like => $like_search },
+                    cobrand_data => { like => $like_search },
+                ];
             }
-        )->page( $p_page );
 
-        $c->stash->{problems} = [ $problems->all ];
-        $c->stash->{problems_pager} = $problems->pager;
-
-        if ($valid_email) {
-            $query = [
-                'me.user_id' => { -in => \@user_ids },
-            ];
-        } elsif ($valid_phone) {
-            $query = [
-                'me.user_id' => { -in => \@user_ids_phone },
-            ];
-        } elsif ($search =~ /^id:(\d+)$/) {
-            $query = [
-                'me.id' => int($1),
-                'me.problem_id' => int($1),
-            ];
-        } elsif ($search =~ /^area:(\d+)$/) {
-            $query = [];
-        } else {
-            $query = [
-                'me.id' => $search_n,
-                'problem.id' => $search_n,
-                'me.user_id' => { -in => [ @user_ids, @user_ids_phone ] },
-                'me.name' => { ilike => $like_search },
-                text => { ilike => $like_search },
-                'me.cobrand_data' => { ilike => $like_search },
-            ];
-        }
-
-        if (@$query) {
-            my $updates = $c->cobrand->updates->search(
+            my $problems = $c->cobrand->problems->search(
+                $query,
                 {
-                    -or => $query,
-                },
-                {
-                    -select   => [ 'me.*', qw/problem.bodies_str problem.state/ ],
-                    prefetch => [qw/problem/],
                     rows => 50,
-                    order_by => [ \"(me.state='hidden')", \"(problem.state='hidden')", 'me.created' ]
+                    order_by => [ \"(state='hidden')", \$order ]
                 }
-            )->page( $u_page );
-            $c->stash->{updates} = [ $updates->all ];
-            $c->stash->{updates_pager} = $updates->pager;
+            )->page( $p_page );
+
+            $c->stash->{problems} = [ $problems->all ];
+            $c->stash->{problems_pager} = $problems->pager;
+
+            if ($valid_email) {
+                $query = [
+                    'me.user_id' => { -in => \@user_ids },
+                ];
+            } elsif ($valid_phone) {
+                $query = [
+                    'me.user_id' => { -in => \@user_ids_phone },
+                ];
+            } elsif ($search =~ /^id:(\d+)$/) {
+                $query = [
+                    'me.id' => int($1),
+                    'me.problem_id' => int($1),
+                ];
+            } elsif ($search =~ /^area:(\d+)$/) {
+                $query = [];
+            } else {
+                $query = [
+                    'me.id' => $search_n,
+                    'problem.id' => $search_n,
+                    'me.user_id' => { -in => [ @user_ids, @user_ids_phone ] },
+                    'me.name' => { ilike => $like_search },
+                    text => { ilike => $like_search },
+                    'me.cobrand_data' => { ilike => $like_search },
+                ];
+            }
+
+            if (@$query) {
+                my $updates = $c->cobrand->updates->search(
+                    {
+                        -or => $query,
+                    },
+                    {
+                        -select   => [ 'me.*', qw/problem.bodies_str problem.state/ ],
+                        prefetch => [qw/problem/],
+                        rows => 50,
+                        order_by => [ \"(me.state='hidden')", \"(problem.state='hidden')", 'me.created' ]
+                    }
+                )->page( $u_page );
+                $c->stash->{updates} = [ $updates->all ];
+                $c->stash->{updates_pager} = $updates->pager;
+            }
+        } else {
+            my $problems = $c->cobrand->problems->search(
+                $query,
+                { order_by => $order, rows => 50 }
+            )->page( $p_page );
+            $c->stash->{problems} = [ $problems->all ];
+            $c->stash->{problems_pager} = $problems->pager;
         }
-
-    } else {
-
-        my $problems = $c->cobrand->problems->search(
-            $query,
-            { order_by => $order, rows => 50 }
-        )->page( $p_page );
-        $c->stash->{problems} = [ $problems->all ];
-        $c->stash->{problems_pager} = $problems->pager;
     }
 
     $c->stash->{edit_body_contacts} = 1
