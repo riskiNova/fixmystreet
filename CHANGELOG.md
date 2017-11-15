@@ -12,6 +12,7 @@
         - Add functionality to have per-body /reports page.
     - Front end improvements:
         - Remove unneeded 2x PNG fallback images.
+        - Individual cobrands can disable social login #1890
     - Bugfixes
         - Shortlist menu item always remains a link #1855
         - Fix encoded entities in RSS output. #1859
@@ -24,6 +25,7 @@
         - Remove shortlist form from inspect duplicate list.
         - Fix pin size when JavaScript unavailable.
         - Fix display of text only body contacts #1895
+        - Prevent text overflow bug on homepage stats #1722
     - Admin improvements:
       - Character length limit can be placed on report detailed information #1848
       - Inspector panel shows nearest address if available #1850
@@ -36,6 +38,7 @@
       - Admins can now unban users #1881
     - UK:
         - Use SVG logo, inlined on front page. #1887
+        - Inline critical CSS on front page.
 
 * v2.2 (13th September 2017)
     - New features:
