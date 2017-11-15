@@ -42,4 +42,6 @@ sub send_questionnaires {
 
 sub use_category_groups { 1 }
 
+sub map_type { 'GoogleOL' }
+
 1;
