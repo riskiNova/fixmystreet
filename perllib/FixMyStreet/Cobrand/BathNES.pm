@@ -36,12 +36,12 @@ sub pin_colour {
     return 'yellow';
 }
 
-sub send_questionnaires {
-    return 0;
-}
+sub send_questionnaires { 0 }
 
 sub use_category_groups { 1 }
 
 sub map_type { 'GoogleOL' }
+
+sub default_show_name { 0 }
 
 1;
