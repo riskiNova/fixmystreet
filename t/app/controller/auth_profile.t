@@ -260,3 +260,61 @@ subtest "Test change phone to existing account" => sub {
         is $_->user->email, $test_email;
     }
 };
+
+subtest "Test only superuser can access generate token page" => sub {
+    my $user = FixMyStreet::App->model('DB::User')->find( { email => $test_email } );
+    ok $user->update({ is_superuser => 0 }), 'user not superuser';
+
+    $mech->log_out_ok;
+    $mech->get_ok('/auth');
+    $mech->submit_form_ok({
+        with_fields => {
+            username => $test_email,
+            password_sign_in => $test_password,
+        },
+    });
+
+    $mech->get('/auth/generate_token');
+    is $mech->res->code, 403, "access denied";
+};
+
+subtest "Test generate token page" => sub {
+    my $user = FixMyStreet::App->model('DB::User')->find( { email => $test_email } );
+    ok $user->update({ is_superuser => 1 }), 'user set to superuser';
+
+    $mech->log_out_ok;
+
+    $mech->get_ok('/auth');
+    $mech->submit_form_ok({
+        with_fields => {
+            username => $test_email,
+            password_sign_in => $test_password,
+        },
+    });
+
+    ok !$user->get_extra_metadata('access_token');
+
+    $mech->get_ok('/my');
+    $mech->follow_link_ok({url => '/auth/generate_token'});
+    $mech->content_lacks('Token:');
+    $mech->submit_form_ok(
+        { with_fields => { generate_token => 'Generate token' } },
+        "submit generate token form"
+    );
+    $mech->content_contains( 'Your token has been generated', "token generated" );
+
+    $user->discard_changes();
+    my $token = $user->get_extra_metadata('access_token');
+    ok $token, 'access token set';
+
+    $mech->content_contains($token, 'access token displayed');
+
+    $mech->get_ok('/auth/generate_token');
+    $mech->content_contains('Current token:');
+    $mech->content_contains($token, 'access token displayed');
+    $mech->content_contains('If you generate a new token');
+
+    $mech->log_out_ok;
+    $mech->add_header('Authorization', "Bearer $token");
+    $mech->logged_in_ok;
+}
