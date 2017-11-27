@@ -1143,6 +1143,10 @@ sub template_edit : Path('templates') : Args(2) {
         } else {
             my @live_contact_ids = map { $_->id } @live_contacts;
             my @new_contact_ids = grep { $c->get_param("contacts[$_]") } @live_contact_ids;
+            my %new_contacts = map { $_ => 1 } @new_contact_ids;
+            for my $contact (@all_contacts) {
+                $contact->{active} = $new_contacts{$contact->{id}};
+            }
 
             $template->title( $c->get_param('title') );
             $template->text( $c->get_param('text') );
