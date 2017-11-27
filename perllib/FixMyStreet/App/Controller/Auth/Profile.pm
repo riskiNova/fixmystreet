@@ -151,7 +151,8 @@ sub change_phone_success : Path('/auth/change_phone/success') {
 sub generate_token : Path('/auth/generate_token') {
     my ($self, $c) = @_;
 
-    $c->detach( '/page_error_403_access_denied', [] ) unless $c->user->is_superuser;
+    $c->detach( '/page_error_403_access_denied', [] )
+        unless $c->user and ( $c->user->is_superuser or $c->user->from_body );
 
     $c->stash->{template} = 'auth/generate_token.html';
     $c->forward('/auth/get_csrf_token');

@@ -261,7 +261,7 @@ subtest "Test change phone to existing account" => sub {
     }
 };
 
-subtest "Test only superuser can access generate token page" => sub {
+subtest "Test superuser can access generate token page" => sub {
     my $user = FixMyStreet::App->model('DB::User')->find( { email => $test_email } );
     ok $user->update({ is_superuser => 0 }), 'user not superuser';
 
@@ -274,8 +274,43 @@ subtest "Test only superuser can access generate token page" => sub {
         },
     });
 
+    $mech->content_lacks('Generate token');
+
     $mech->get('/auth/generate_token');
     is $mech->res->code, 403, "access denied";
+
+    ok $user->update({ is_superuser => 1 }), 'user is superuser';
+
+    $mech->get_ok('/my');
+    $mech->content_contains('Generate token');
+    $mech->get_ok('/auth/generate_token');
+};
+
+subtest "Test staff user can access generate token page" => sub {
+    my $user = FixMyStreet::App->model('DB::User')->find( { email => $test_email } );
+    ok $user->update({ is_superuser => 0 }), 'user not superuser';
+
+    $mech->log_out_ok;
+    $mech->get_ok('/auth');
+    $mech->submit_form_ok({
+        with_fields => {
+            username => $test_email,
+            password_sign_in => $test_password,
+        },
+    });
+
+    $mech->content_lacks('Generate token');
+
+    my $body = $mech->create_body_ok(2237, 'Oxfordshire');
+
+    $mech->get('/auth/generate_token');
+    is $mech->res->code, 403, "access denied";
+
+    ok $user->update({ from_body => $body }), 'user is staff user';
+
+    $mech->get_ok('/my');
+    $mech->content_contains('Generate token');
+    $mech->get_ok('/auth/generate_token');
 };
 
 subtest "Test generate token page" => sub {
