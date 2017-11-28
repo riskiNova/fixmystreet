@@ -1,4 +1,22 @@
-[% IF category_options.size ~%]
+[% IF category_groups.size > 1 ~%]
+    [% IF category;
+        category_lc = category | lower;
+       END; ~%]
+    <label for='form_category' id="form_category_label">
+        [%~ loc('Category') ~%]
+    </label>[% =%]
+    <select class="form-control" name='category' id='form_category' data-role='[% c.user.has_body_permission_to('planned_reports') ? 'inspector' : 'user'  %]' data-body='[% c.user.from_body.name %]'>
+    [%~ FOREACH group IN category_groups ~%]
+        [% IF group.name %]<optgroup label="[% group.name %]">[% END %]
+        [%~ FOREACH cat_op IN group.categories ~%]
+            [% cat_op_lc = cat_op.name | lower =%]
+            <option value='[% cat_op.name | html %]'[% ' selected' IF report.category == cat_op.name || category_lc == cat_op_lc || (category_options.size == 2 AND loop.last) ~%]
+            >[% IF loop.first %][% cat_op.value %][% ELSE %][% cat_op.value | html %][% END %]</option>
+        [%~ END ~%]
+        [% IF group.name %]</optgroup>[% END %]
+    [%~ END =%]
+    </select>
+[% ELSIF category_options.size ~%]
     [% IF category;
         category_lc = category | lower;
        END; ~%]
