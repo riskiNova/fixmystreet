@@ -123,24 +123,16 @@ function isR2L() {
 
         if ( $select.data('all') ) {
             settings.allText = $select.data('all');
-
-            if ( ! settings.noneText ) {
-                settings.noneText = settings.allText;
-            }
-
-            if ( $select.data('all-options') ) {
-                settings.presets = [];
-                settings.presets.push({
-                    name: settings.allText,
-                    options: $select.data('all-options')
-                });
-            }
+            settings.noneText = settings.noneText || settings.allText;
+            settings.presets = [];
+            settings.presets.push({
+                name: settings.allText,
+                options: $select.data('all-options') || []
+            });
         }
 
         if ( $select.data('extra') && $select.data('extra-options') ) {
-            if ( typeof settings.presets === 'undefined' ) {
-                settings.presets = [];
-            }
+            settings.presets = settings.presets || [];
             settings.presets.push({
                 name: $select.data('extra'),
                 options: $select.data('extra-options')

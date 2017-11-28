@@ -7,7 +7,7 @@
     position: absolute;
     left: 0;
     top: 0.8em;
-    z-index: 2;
+    z-index: 2; // stack above mysoc-footer
     float: left; // shrink to width of child elements
     min-width: 100%; // always at least as wide as its .multi-select-button sibling
     background: #fff;
