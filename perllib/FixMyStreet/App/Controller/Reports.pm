@@ -430,40 +430,27 @@ sub summary : Private {
         return 1;
     };
 
+    my $group_by = 'category';
+    my $stash_item = 'categories';
+
     if ( $c->get_param('by_device') ) {
-        $c->stash->{devices} = $c->cobrand->problems->search(
-            {
-                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
-            },
-            {
-                select => [ 'service', { count => 'id' } ],
-                as => [ 'service', 'service_count' ],
-                group_by => 'service',
-            }
-        );
-    } elsif ( $c->get_param('by_state') ) {
-        $c->stash->{statuses} = $c->cobrand->problems->search(
-            {
-                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
-            },
-            {
-                select => [ 'state', { count => 'id' } ],
-                as => [ 'state', 'state_count' ],
-                group_by => 'state',
-            }
-        );
-    } else {
-        $c->stash->{categories} = $c->cobrand->problems->search(
-            {
-                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
-            },
-            {
-                select => [ 'category', { count => 'id' } ],
-                as => [ 'category', 'category_count' ],
-                group_by => 'category',
-            }
-        );
+        $group_by = 'service';
+        $stash_item = 'devices';
+    } elsif ( $c->get_param('by_status') ) {
+        $group_by = 'state';
+        $stash_item = 'statuses';
     }
+
+    $c->stash->{$stash_item} = $c->cobrand->problems->search(
+        {
+            bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
+        },
+        {
+            select => [ $group_by, { count => "id" } ],
+            as => [ $group_by, $group_by . "_count" ],
+            group_by => $group_by,
+        }
+    );
 
     my $substmt = "select min(id) from comment where me.problem_id=comment.problem_id and (problem_state in ('fixed', 'fixed - council', 'fixed - user') or mark_fixed)";
     my $subquery = FixMyStreet::DB->resultset('Comment')->to_body($c->stash->{body})->search({

@@ -34,7 +34,7 @@
                   [% WHILE (status = statuses.next) %]
                   <tr>
                       <td>[% prettify_state(status.state) %]</td>
-                      <td>[% status.get_column('status_count') %]</td>
+                      <td>[% status.get_column('state_count') %]</td>
                   </tr>
                   [% END %]
                [% ELSE %]
