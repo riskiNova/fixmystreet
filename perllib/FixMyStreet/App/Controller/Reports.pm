@@ -69,19 +69,8 @@ sub index : Path : Args(0) {
         }
     }
 
-    my $dashboard = eval {
-        my $data = FixMyStreet->config('TEST_DASHBOARD_DATA');
-        # uncoverable branch true
-        unless ($data) {
-            my $fn = '../data/all-reports-dashboard';
-            if ($c->stash->{body}) {
-                $fn .= '-' . $c->stash->{body}->id;
-            }
-            $data = decode_json(path(FixMyStreet->path_to($fn . '.json'))->slurp_utf8);
-        }
-        $c->stash($data);
-        return 1;
-    };
+    my $dashboard = $c->forward('load_dashboard_data');
+
     my $table = !$c->stash->{body} && eval {
         my $data = path(FixMyStreet->path_to('../data/all-reports.json'))->slurp_utf8;
         $c->stash(decode_json($data));
@@ -425,6 +414,85 @@ sub ward_check : Private {
     $c->detach( 'redirect_body' );
 }
 
+=head2 summary
+
+This is the summary page used on fixmystreet.com
+
+=cut
+
+sub summary : Private {
+    my ($self, $c) = @_;
+    my $dashboard = $c->forward('load_dashboard_data');
+
+    my $table = eval {
+        my $data = path(FixMyStreet->path_to('../data/all-reports-dashboard.json'))->slurp_utf8;
+        $c->stash(decode_json($data));
+        return 1;
+    };
+
+    if ( $c->get_param('by_device') ) {
+        $c->stash->{devices} = $c->cobrand->problems->search(
+            {
+                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
+            },
+            {
+                select => [ 'service', { count => 'id' } ],
+                as => [ 'service', 'service_count' ],
+                group_by => 'service',
+            }
+        );
+    } elsif ( $c->get_param('by_state') ) {
+        $c->stash->{statuses} = $c->cobrand->problems->search(
+            {
+                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
+            },
+            {
+                select => [ 'state', { count => 'id' } ],
+                as => [ 'state', 'state_count' ],
+                group_by => 'state',
+            }
+        );
+    } else {
+        $c->stash->{categories} = $c->cobrand->problems->search(
+            {
+                bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
+            },
+            {
+                select => [ 'category', { count => 'id' } ],
+                as => [ 'category', 'category_count' ],
+                group_by => 'category',
+            }
+        );
+    }
+
+    my $substmt = "select min(id) from comment where me.problem_id=comment.problem_id and (problem_state in ('fixed', 'fixed - council', 'fixed - user') or mark_fixed)";
+    my $subquery = FixMyStreet::DB->resultset('Comment')->to_body($c->stash->{body})->search({
+        -or => [
+            problem_state => [ FixMyStreet::DB::Result::Problem->fixed_states() ],
+            mark_fixed => 1,
+        ],
+        'me.id' => \"= ($substmt)",
+        'me.state' => 'confirmed',
+    }, {
+        select   => [
+            { extract => "epoch from me.confirmed-problem.confirmed", -as => 'time' },
+        ],
+        as => [ qw/time/ ],
+        rows => 100,
+        order_by => { -desc => 'me.confirmed' },
+        join => 'problem'
+    })->as_subselect_rs;
+    my $avg = $subquery->search({
+    }, {
+        select => [ { avg => "time" } ],
+        as => [ qw/avg/ ],
+    })->first->get_column('avg');
+
+    $c->stash->{body_average} = int($avg / 60 / 60 / 24 + 0.5);
+
+    $c->stash->{template} = 'reports/summary.html';
+}
+
 =head2 check_canonical_url
 
 Given an already found (case-insensitively) body, check what URL
@@ -439,6 +507,25 @@ sub check_canonical_url : Private {
     my $url_short = URI::Escape::uri_escape_utf8($q_body);
     $url_short =~ s/%2B/+/g;
     $c->detach( 'redirect_body' ) unless $body_short eq $url_short;
+}
+
+sub load_dashboard_data : Private {
+    my ($self, $c) = @_;
+    my $dashboard = eval {
+        my $data = FixMyStreet->config('TEST_DASHBOARD_DATA');
+        # uncoverable branch true
+        unless ($data) {
+            my $fn = '../data/all-reports-dashboard';
+            if ($c->stash->{body}) {
+                $fn .= '-' . $c->stash->{body}->id;
+            }
+            $data = decode_json(path(FixMyStreet->path_to($fn . '.json'))->slurp_utf8);
+        }
+        $c->stash($data);
+        return 1;
+    };
+
+    return $dashboard;
 }
 
 sub load_and_group_problems : Private {
