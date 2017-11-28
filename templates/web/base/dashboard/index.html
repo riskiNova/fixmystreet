@@ -1,3 +1,5 @@
+[% USE Number.Format %]
+
 [% extra_css = BLOCK %]
 	    <link rel="stylesheet" href="[% version('/cobrands/fixmystreet/dashboard.css') %]">
 [% END %]
@@ -84,23 +86,26 @@
 
 </form>
 
-<p>
-Within the specified timeframe:
-[% tprintf( loc('%d opened, %d closed, %d fixed'), open, closed, fixed ) %]
-</p>
-
-<p>
-Group by:
-<a href="[% c.uri_with({ group_by => 'category' }) %]">category</a>
-| <a href="[% c.uri_with({ group_by => 'state' }) %]">state</a>
-| <a href="[% c.uri_with({ group_by => 'month' }) %]">month</a>
-| <a href="[% c.uri_with({ group_by => 'category+state' }) %]">category+state</a>
-| <a href="[% c.uri_with({ group_by => 'device/site' }) %]">device/site</a>
-</p>
-
-Current state of reports that match filters:
+[% BLOCK gb %]
+[% IF group_by == new_gb %]
+    <strong>[% new_gb %]</strong>
+[% ELSE %]
+    <a href="[% c.uri_with({ group_by => new_gb }) %]">[% new_gb %]</a>
+[% END %]
+[% END %]
 
 <table width="100%" id="overview">
+    <caption>
+        [% loc('Current state of filtered reports') %]
+        <p>
+        [% loc('Group by:') %]
+        [% INCLUDE gb new_gb='category' %]
+        | [% INCLUDE gb new_gb='state' %]
+        | [% INCLUDE gb new_gb='month' %]
+        | [% INCLUDE gb new_gb='category+state' %]
+        | [% INCLUDE gb new_gb='device/site' %]
+        </p>
+    </caption>
   [% FOR k IN grouped.keys.sort %]
     [% IF loop.first %]
       <tr>
@@ -154,5 +159,15 @@ Current state of reports that match filters:
         <td>[% totals.total OR 0 %]</td>
     </tr>
 </table>
+
+<p>
+Within the specified timeframe:
+[%
+summary_open = summary_open | format_number;
+summary_closed = summary_closed | format_number;
+summary_fixed = summary_fixed | format_number;
+tprintf( loc('%s opened, %s closed, %s fixed'),
+    decode(summary_open), decode(summary_closed), decode(summary_fixed) ) %]
+</p>
 
 [% INCLUDE 'footer.html' %]
