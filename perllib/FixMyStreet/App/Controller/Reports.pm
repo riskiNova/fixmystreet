@@ -441,10 +441,30 @@ sub summary : Private {
         $stash_item = 'statuses';
     }
 
+    my ($start_date, $end_date);
+    my $date = $c->get_param('date');
+
+    if ($date eq 'week') {
+        $start_date = DateTime->now->subtract( weeks => 1);
+    } elsif ( $date eq 'month' ) {
+        $start_date = DateTime->now->subtract( months => 1);
+    } elsif ( $date eq '3months' ) {
+        $start_date = DateTime->now->subtract( months => 3);
+    } elsif ($date eq 'year') {
+        $start_date = DateTime->now->subtract( years => 1);
+    } elsif (my $start = $c->get_param('start_date')) {
+    }
+
+    my $search = {
+        bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
+    };
+
+    if ( $start_date ) {
+        $search->{'me.confirmed'} = { '>=' => $start_date };
+    }
+
     $c->stash->{$stash_item} = $c->cobrand->problems->search(
-        {
-            bodies_str => { 'like' => '%' . $c->stash->{body}->id . '%' }
-        },
+        $search,
         {
             select => [ $group_by, { count => "id" } ],
             as => [ $group_by, $group_by . "_count" ],
