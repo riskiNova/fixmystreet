@@ -21,34 +21,21 @@ Catalyst Controller.
 
 =cut
 
+sub auto : Private {
+    my ($self, $c) = @_;
+    $c->stash->{filter_states} = $c->cobrand->state_groups_inspect;
+    return 1;
+}
+
 sub example : Local : Args(0) {
     my ( $self, $c ) = @_;
     $c->stash->{template} = 'dashboard/index.html';
 
-    # THIS IS A BIT BROKEN XXX
-
-    $c->stash->{filter_states} = $c->cobrand->state_groups_inspect;
-
-    $c->stash->{children} = {};
-    for my $i (1..3) {
-        $c->stash->{children}{$i} = { id => $i, name => "Ward $i" };
-    }
-
-    # See if we've had anything from the dropdowns - perhaps vary results if so
-    $c->stash->{ward} = $c->get_param('ward');
-    $c->stash->{category} = $c->get_param('category');
-    $c->stash->{q_state} = $c->get_param('state');
+    $c->stash->{group_by} = 'category+state';
 
     eval {
         my $j = decode_json(path(FixMyStreet->path_to('data/dashboard.json'))->slurp_utf8);
-        if ( !$c->stash->{ward} && !$c->stash->{category} ) {
-            $c->stash->{problems} = $j->{counts_all};
-        } else {
-            $c->stash->{problems} = $j->{counts_some};
-        }
-        $c->stash->{body} = $j->{council};
-        $c->stash->{children} = $j->{wards};
-        $c->stash->{contacts} = $j->{category_options};
+        $c->stash($j);
     };
     if ($@) {
         my $message = _("There was a problem showing this page. Please try again later.") . ' ' .
@@ -90,9 +77,6 @@ sub index : Path : Args(0) {
     my ( $self, $c ) = @_;
 
     my $body = $c->stash->{body} = $c->forward('check_page_allowed');
-
-    # Set up the data for the dropdowns
-    $c->stash->{filter_states} = $c->cobrand->state_groups_inspect;
 
     if ($body) {
         my $area_id = $body->body_areas->first->area_id;
