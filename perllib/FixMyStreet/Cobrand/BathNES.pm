@@ -40,4 +40,6 @@ sub send_questionnaires {
     return 0;
 }
 
+sub use_category_groups { 1 }
+
 1;
