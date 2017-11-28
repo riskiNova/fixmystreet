@@ -79,6 +79,8 @@ sub index : Path : Args(0) {
     my $body = $c->stash->{body} = $c->forward('check_page_allowed');
 
     if ($body) {
+        $c->stash->{body_name} = $body->name;
+
         my $area_id = $body->body_areas->first->area_id;
         my $children = mySociety::MaPit::call('area/children', $area_id,
             type => $c->cobrand->area_types_children,
@@ -93,6 +95,7 @@ sub index : Path : Args(0) {
         $c->stash->{ward} = $c->get_param('ward');
         if ($c->user->area_id) {
             $c->stash->{ward} = $c->user->area_id;
+            $c->stash->{body_name} = join "", map { $children->{$_}->{name} } grep { $children->{$_} } $c->user->area_id;
         }
     } else {
         $c->forward('/admin/fetch_all_bodies');
